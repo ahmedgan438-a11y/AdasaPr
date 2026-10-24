@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080b10">
+<title>عدسة برو</title>
+<style>
+:root{--gold:#d9b56d;--bg:#080b10;--panel:#131923;--muted:#9ba6b6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f5f6f8;font-family:Arial,sans-serif}
+header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid #242b37}
+.brand{font-weight:800;font-size:21px;letter-spacing:.2px}.brand span{color:var(--gold)}.pill{font-size:11px;color:var(--gold);border:1px solid #655536;border-radius:20px;padding:6px 10px}
+main{padding:14px;max-width:600px;margin:auto}.view{height:min(59vh,520px);min-height:330px;background:#151b24;border-radius:24px;overflow:hidden;position:relative;border:1px solid #29313e}
+video{width:100%;height:100%;object-fit:cover;display:block}.overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:16px}
+.topline{display:flex;justify-content:space-between;color:white;text-shadow:0 1px 5px #000;font-size:12px}.focus{align-self:center;margin:auto;width:58px;height:58px;border:1px solid #e9d39b;border-radius:50%;box-shadow:0 0 0 1px #0005}
+.status{background:#0009;border-radius:20px;padding:7px 11px;font-size:12px;align-self:flex-start}
+.controls{display:flex;justify-content:space-around;align-items:center;padding:20px 6px 12px;gap:12px}
+.btn{border:1px solid #303948;background:var(--panel);color:#fff;border-radius:15px;padding:12px 14px;font-size:14px;min-width:54px}
+.shutter{width:76px;height:76px;border-radius:50%;border:4px solid #f4f4f4;background:var(--gold);box-shadow:0 0 0 5px #d9b56d33;min-width:76px;padding:0}
+.sub{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.sub .btn{font-size:12px;padding:10px 12px}
+.settings{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:15px}
+.tile{background:var(--panel);border:1px solid #252d39;border-radius:14px;padding:12px 8px;text-align:center}
+.tile b{display:block;color:var(--gold);font-size:13px;margin-bottom:5px}.tile small{color:var(--muted);font-size:11px}
+input[type=range]{width:100%;accent-color:var(--gold);margin-top:9px}
+#gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}#gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.note{color:var(--muted);font-size:12px;line-height:1.6;text-align:center;margin:14px 4px}
+</style></head>
+<body>
+<header><div class="brand">عدسة <span>PRO</span></div><div class="pill">التصوير الذكي</div></header>
+<main>
+<div class="view">
+ <video id="video" autoplay playsinline muted></video>
+ <div class="overlay"><div class="topline"><span id="camlabel">الكاميرا الخلفية</span><span>● LIVE</span></div><div class="focus"></div><div class="status" id="status">اضغط تشغيل لبدء الكاميرا</div></div>
+</div>
+<div class="controls">
+ <button class="btn" id="switch">⟳<br><small>تبديل</small></button>
+ <button class="shutter" id="shot" aria-label="التقاط صورة"></button>
+ <button class="btn" id="start">▶<br><small>تشغيل</small></button>
+</div>
+<div class="sub">
+ <button class="btn" id="flash">⚡ الفلاش</button>
+ <button class="btn" id="filter">◐ الفلتر: طبيعي</button>
+ <button class="btn" id="saveall">⬇ حفظ الصور</button>
+ <label class="btn">استيراد صورة<input id="pick" type="file" accept="image/*" hidden></label>
+</div>
+<div class="settings">
+ <div class="tile"><b>سطوع الصورة</b><small>تعويض بصري</small><input id="bright" type="range" min="60" max="150" value="100"></div>
+ <div class="tile"><b>التباين</b><small>تحسين التفاصيل</small><input id="contrast" type="range" min="70" max="150" value="100"></div>
+ <div class="tile"><b>التشبع</b><small>ألوان الصورة</small><input id="sat" type="range" min="0" max="180" value="100"></div>
+</div>
+<div id="gallery"></div>
+<p class="note">عدسة برو — واجهة تصوير تجريبية. جودة الصورة والخصائص الفعلية تعتمد على كاميرا الهاتف وإصدار Android. قد يلزم السماح بإذن الكاميرا.</p>
+</main>
+<canvas id="canvas" hidden></canvas>
+<script>
+const video=document.querySelector('#video'), statusEl=document.querySelector('#status');
+let stream=null, facing='environment', torch=false, filterMode=0, photos=[];
+async function startCamera(){
+ try{
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}},audio:false});
+  video.srcObject=stream; await video.play(); statusEl.textContent='الكاميرا جاهزة للتصوير';
+  document.querySelector('#camlabel').textContent=facing==='environment'?'الكاميرا الخلفية':'الكاميرا الأمامية';
+ }catch(e){statusEl.textContent='تعذر تشغيل الكاميرا — تأكد من إذن الكاميرا ثم أعد المحاولة';}
+}
+document.querySelector('#start').onclick=startCamera;
+document.querySelector('#switch').onclick=()=>{facing=facing==='environment'?'user':'environment';startCamera()};
+document.querySelector('#shot').onclick=()=>{
+ if(!video.videoWidth){statusEl.textContent='شغّل الكاميرا أولاً';return}
+ const c=document.querySelector('#canvas');c.width=video.videoWidth;c.height=video.videoHeight;
+ const x=c.getContext('2d');x.filter=getFilter();x.translate(facing==='user'?c.width:0,0);x.scale(facing==='user'?-1:1,1);x.drawImage(video,0,0,c.width,c.height);
+ const url=c.toDataURL('image/jpeg',.94);photos.unshift(url);renderGallery();statusEl.textContent='تم التقاط الصورة';
+};
+function getFilter(){return ['none','grayscale(1)','sepia(.35) contrast(1.08)'][filterMode]+' brightness('+document.querySelector('#bright').value+'%) contrast('+document.querySelector('#contrast').value+'%) saturate('+document.querySelector('#sat').value+'%)'}
+for(const id of ['bright','contrast','sat']) document.querySelector('#'+id).oninput=()=>{video.style.filter=getFilter()};
+document.querySelector('#filter').onclick=()=>{filterMode=(filterMode+1)%3;document.querySelector('#filter').textContent='◐ الفلتر: '+['طبيعي','أبيض وأسود','دافئ'][filterMode];video.style.filter=getFilter()};
+document.querySelector('#flash').onclick=async()=>{
+ try{const track=stream?.getVideoTracks()[0],caps=track.getCapabilities();if(!caps.torch){statusEl.textContent='الفلاش غير متاح عبر هذه الكاميرا';return}
+ torch=!torch;await track.applyConstraints({advanced:[{torch}]});statusEl.textContent=torch?'الفلاش يعمل':'تم إيقاف الفلاش';
+ }catch(e){statusEl.textContent='الفلاش غير مدعوم في هذا الوضع';}
+};
+function renderGallery(){const g=document.querySelector('#gallery');g.innerHTML='';photos.forEach((p,i)=>{const a=document.createElement('a');a.href=p;a.download='AdasaPro_'+(photos.length-i)+'.jpg';const im=document.createElement('img');im.src=p;a.appendChild(im);g.appendChild(a)})}
+document.querySelector('#saveall').onclick=()=>{photos.forEach((p,i)=>{const a=document.createElement('a');a.href=p;a.download='AdasaPro_'+(i+1)+'.jpg';a.click()});if(!photos.length)statusEl.textContent='لا توجد صور محفوظة في الجلسة بعد'};
+document.querySelector('#pick').onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);const im=document.createElement('img');im.src=u;im.style.cssText='width:100%;border-radius:12px;margin-top:12px';document.querySelector('main').appendChild(im)};
+</script></body></html>
